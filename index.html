@@ -148,13 +148,13 @@ const CATS=[
 {id:'fruit',e:'🍓',t:'Fruit Tea',c1:'#2f9e44',c2:'#e64980',items:[{n:'Fruit Tea',d:'Choose your size and flavor',o:two,f:FT}]}
 ];
 const $=id=>document.getElementById(id);
-// Items or flavors that are NOT available right now. Add names here, e.g. ['Hawaiian Ham Pizza','Okinawa']
-const SOLD_OUT=[];
+// Items or flavors that are NOT available right now. Add names here, e.g. ['Hawaiian Ham Pizza','Okinawa','Budbod Lechon Kawali|Small']
+const SOLD_OUT=['Budbod Lechon Kawali|Small','Quarter Pounder Burger','Cheese Quarter Pounder Burger','Cheesy Melt Quarter Pounder Burger','Milk Tea','Iced Coffee','Fruit Tea'];
 function itemHTML(ci,ii,it){
   const one=it.o.length===1,out=SOLD_OUT.includes(it.n);
   let h=`<div class="item2${out?' out':''}" data-k="${ci}-${ii}"><div class="top"><div><b class="n">${it.n}${it.star?'<span class="star">⭐ BEST SELLER</span>':''}</b><small>${it.d}</small></div>${out?'<div class="soldtag">SOLD OUT</div>':(one?`<div class="price">₱${it.o[0][1]}</div>`:'')}</div>`;
   if(out)return h+'</div>';
-  if(!one) h+='<div class="opts">'+it.o.map((o,k)=>`<button class="opt${k?'':' on'}" data-k="${k}">${o[0]}<b>₱${o[1]}</b></button>`).join('')+'</div>';
+  if(!one){const fa=it.o.findIndex(o=>!SOLD_OUT.includes(it.n+'|'+o[0]));h+='<div class="opts">'+it.o.map((o,k)=>SOLD_OUT.includes(it.n+'|'+o[0])?`<button class="opt" disabled style="opacity:.45;text-decoration:line-through">${o[0]}<b>out</b></button>`:`<button class="opt${k===fa?' on':''}" data-k="${k}">${o[0]}<b>₱${o[1]}</b></button>`).join('')+'</div>';}
   if(it.f) h+='<div class="flt">Pick a flavor:</div><div class="fl">'+it.f.map(f=>SOLD_OUT.includes(f)?`<button class="chip" disabled>${f} (out)</button>`:`<button class="chip" data-f="${f}">${f}</button>`).join('')+'</div>';
   return h+'<button class="add">+ Add to order</button></div>';
 }
