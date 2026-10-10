@@ -79,6 +79,23 @@ button{cursor:pointer}
 .hint{font-size:12px;color:var(--mute);margin:2px 0 10px}
 #lines{max-height:22vh;overflow:auto}.r2{display:flex;gap:6px}.r2 .f{flex:1;min-width:0}.r2 .btn{width:auto}body{overflow-x:hidden}
 [hidden]{display:none!important}
+/* one-screen layout */
+html,body{height:100%;overflow:hidden}
+body{display:flex;flex-direction:column}
+.top{flex:0 0 auto;position:static}
+#vSell{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;min-width:0}
+.main{flex:1 1 auto;min-height:0;min-width:0;overflow:auto;padding:6px 10px}
+#tabs{position:static;max-width:100%;padding:2px 0 6px;overflow-x:auto}
+#tabs button{padding:6px 11px;font-size:13px}
+#grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.tile{min-height:70px;padding:6px 4px}.tile .em{font-size:20px}.tile b{font-size:12.5px}
+.cart{position:static;flex:0 0 auto;max-height:70%;border-radius:18px 18px 0 0;box-shadow:0 -4px 14px rgba(0,0,0,.15);height:auto}
+.cart .bar{display:none}
+.cart .body{display:block;overflow:auto}
+#lines{max-height:20vh;min-height:36px}
+#vToday,#vSet{flex:1 1 auto;min-height:0;overflow:auto}
+.sm2{display:flex;gap:12px}.sm2 .tot{flex:1}
+@media(min-width:900px){#vSell{flex-direction:row}.cart{flex:0 0 380px;max-height:none;border-radius:0;border-left:3px solid var(--gold);border-top:0}.main{padding:12px}#grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
 </style>
 </head>
 <body>
@@ -100,8 +117,7 @@ button{cursor:pointer}
 </div>
 <div class="r2"><select class="f" id="pay"><option>Cash</option><option>GCash</option><option>Maya</option></select><input class="f" id="cash" type="number" inputmode="decimal" placeholder="Cash received"></div>
 <div class="r2"><input class="f" id="fee" type="number" inputmode="numeric" placeholder="Delivery fee" value="30" hidden><input class="f" id="cust" placeholder="Customer (optional)"></div>
-<div class="tot"><span>Subtotal</span><b id="tsub">₱0</b></div>
-<div class="tot" id="rfee" hidden><span>Delivery fee</span><b id="tfee">₱0</b></div>
+<div class="sm2"><div class="tot"><span>Subtotal</span><b id="tsub">₱0</b></div><div class="tot" id="rfee" hidden><span>Delivery</span><b id="tfee">₱0</b></div></div>
 <div class="tot g"><span>TOTAL</span><span id="tgr">₱0</span></div>
 <div class="tot" id="rchg" hidden><span>Change</span><b id="tchg">₱0</b></div>
 <div class="r2"><button class="btn sec" id="clr" style="flex:0 0 30%">Clear</button><button class="btn go" id="rec" style="flex:1">✅ Record sale</button></div>
