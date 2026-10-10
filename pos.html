@@ -96,6 +96,7 @@ body{display:flex;flex-direction:column}
 #vToday,#vSet{flex:1 1 auto;min-height:0;overflow:auto}
 .sm2{display:flex;gap:12px}.sm2 .tot{flex:1}
 @media(min-width:900px){#vSell{flex-direction:row}.cart{flex:0 0 380px;max-height:none;border-radius:0;border-left:3px solid var(--gold);border-top:0}.main{padding:12px}#grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+.paste{background:#2b1a05!important;color:#ffd43b;border-color:#2b1a05!important}.chk{flex:1;display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:0 4px}.chk input{width:20px;height:20px}
 </style>
 </head>
 <body>
@@ -115,7 +116,7 @@ body{display:flex;flex-direction:column}
 <label><input type="radio" name="type" value="Pick-up"><span>🛍️ Pick-up</span></label>
 <label><input type="radio" name="type" value="Delivery"><span>🛵 Delivery</span></label>
 </div>
-<div class="r2"><select class="f" id="pay"><option>Cash</option><option>GCash</option><option>Maya</option></select><input class="f" id="cash" type="number" inputmode="decimal" placeholder="Cash received"></div>
+<div class="r2"><select class="f" id="pay"><option>Cash</option><option>GCash</option><option>Maya</option></select><input class="f" id="cash" type="number" inputmode="decimal" placeholder="Cash received"><label class="chk" id="paidw" hidden><input type="checkbox" id="paid" checked> Already paid</label></div>
 <div class="r2"><input class="f" id="fee" type="number" inputmode="numeric" placeholder="Delivery fee" value="30" hidden><input class="f" id="cust" placeholder="Customer (optional)"></div>
 <div class="sm2"><div class="tot"><span>Subtotal</span><b id="tsub">₱0</b></div><div class="tot" id="rfee" hidden><span>Delivery</span><b id="tfee">₱0</b></div></div>
 <div class="tot g"><span>TOTAL</span><span id="tgr">₱0</span></div>
@@ -1415,7 +1416,7 @@ const CATS=[
 ['Budbod','🍚',[['Budbod Lechon Kawali',[['Small',95],['Medium',110],['Large',125]]]]],
 ['Lechon','🥓',[['Lechon Kawali 200g',[['',150]]]]],
 ['Pizza','🍕',[['All Cheese Pizza',[['',110]]],['Ham & Cheese Pizza',[['',120]]],['Hawaiian Ham Pizza',[['',130]]]]],
-['Burgers','🍔',[['Quarter Pounder',[['',79]]],['Cheese Quarter Pounder',[['',89]]],['Cheesy Melt Quarter Pounder',[['',109]]]]],
+['Burgers','🍔',[['Quarter Pounder Burger',[['',79]]],['Cheese Quarter Pounder Burger',[['',89]]],['Cheesy Melt Quarter Pounder Burger',[['',109]]]]],
 ['Milk Tea','🧋',[['Milk Tea',[['Medium',29],['Large',39]],['Wintermelon','Okinawa','Red Velvet','Dark Chocolate','Chocolate','Cookies & Cream','Salted Caramel','Black Forest']]]],
 ['Iced Coffee','☕',[['Iced Coffee',[['Medium',29],['Large',39]],['Americano','Latte','Mocha','Caramel Macchiato']]]],
 ['Fruit Tea','🍓',[['Fruit Tea',[['Medium',29],['Large',39]],['Green Apple','Blueberry','Strawberry']]]]
@@ -1428,12 +1429,12 @@ let orders=ls('mekos_orders',[]),cfg=ls('mekos_cfg',{url:'',key:''}),cart=[],cat
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
 
 // ---------- menu ----------
-function drawTabs(){$('tabs').innerHTML=CATS.map((c,i)=>`<button data-i="${i}" class="${i===cat?'on':''}">${c[1]} ${c[0]}</button>`).join('')}
+function drawTabs(){$('tabs').innerHTML='<button id="bPaste" class="paste">📋 Paste order</button>'+CATS.map((c,i)=>`<button data-i="${i}" class="${i===cat?'on':''}">${c[1]} ${c[0]}</button>`).join('')}
 function drawGrid(){
   $('grid').innerHTML=CATS[cat][2].map((it,i)=>{const lo=Math.min(...it[1].map(o=>o[1])),multi=it[1].length>1;
     return `<button class="tile" data-i="${i}"><span class="em">${CATS[cat][1]}</span><b>${it[0]}</b><small>${multi?'from ':''}${peso(lo)}</small></button>`}).join('');
 }
-$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;cat=+b.dataset.i;drawTabs();drawGrid()};
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='bPaste'){openPaste();return}cat=+b.dataset.i;drawTabs();drawGrid()};
 $('grid').onclick=e=>{const b=e.target.closest('.tile');if(!b)return;const it=CATS[cat][2][+b.dataset.i];
   if(it[1].length===1&&!it[2]){add(it[0],it[1][0][0],'',it[1][0][1]);return}
   picker(it)};
@@ -1460,7 +1461,7 @@ function drawCart(){
   $('fee').hidden=type()!=='Delivery';$('rfee').hidden=type()!=='Delivery';
   $('tsub').textContent=peso(T.sub);$('tfee').textContent=peso(T.fee);$('tgr').textContent=peso(T.total);$('ctot').textContent=peso(T.total);
   $('cinfo').textContent=`🛒 Order (${n})`;
-  const cash=+$('cash').value,show=$('pay').value==='Cash'&&cash>0;$('cash').hidden=$('pay').value!=='Cash';
+  const cash=+$('cash').value,show=$('pay').value==='Cash'&&cash>0;$('cash').hidden=$('pay').value!=='Cash';$('paidw').hidden=$('pay').value==='Cash';
   $('rchg').hidden=!show;if(show)$('tchg').textContent=cash>=T.total?peso(cash-T.total):'Short '+peso(T.total-cash);
 }
 $('lines').onclick=e=>{const b=e.target.closest('button');if(!b)return;const l=cart[+b.dataset.i];l.q+=+b.dataset.d;if(l.q<1)cart.splice(+b.dataset.i,1);drawCart()};
@@ -1473,12 +1474,12 @@ $('clr').onclick=()=>{if(cart.length&&!confirm('Clear this order?'))return;cart=
 const dstr=d=>d.toLocaleDateString('en-CA'),tstr=d=>d.toTimeString().slice(0,5);
 function record(){
   if(!cart.length){toast('Add items first');return}
-  const T=totals(),now=new Date(),day=dstr(now),cash=+$('cash').value||0,pay=$('pay').value;
+  const T=totals(),now=new Date(),day=dstr(now),cash=+$('cash').value||0,pay=$('pay').value,paid=pay==='Cash'?true:$('paid').checked;
   const n=orders.filter(o=>o.date===day).length+1,id='M'+day.replace(/-/g,'')+'-'+String(n).padStart(3,'0');
-  const o={id,date:day,time:tstr(now),type:type(),pay,cust:$('cust').value.trim(),items:cart.map(l=>({n:l.n,s:l.s,f:l.f,p:l.p,q:l.q})),sub:T.sub,fee:T.fee,total:T.total,cash:pay==='Cash'?cash:0,change:pay==='Cash'&&cash>=T.total?cash-T.total:0,status:'OK',sent:false};
+  const o={id,date:day,time:tstr(now),type:type(),pay,cust:$('cust').value.trim(),items:cart.map(l=>({n:l.n,s:l.s,f:l.f,p:l.p,q:l.q})),sub:T.sub,fee:T.fee,total:T.total,cash:pay==='Cash'?cash:0,change:pay==='Cash'&&cash>=T.total?cash-T.total:0,status:'OK',paid,sent:false};
   orders.push(o);sv('mekos_orders',orders);
   rmodal(o,true);
-  cart=[];$('cust').value='';$('cash').value='';$('cart').classList.remove('open');drawCart();syncAll();
+  cart=[];$('cust').value='';$('cash').value='';$('paid').checked=true;$('cart').classList.remove('open');drawCart();syncAll();
 }
 
 // ---------- QR receipt ----------
@@ -1486,7 +1487,7 @@ const sn=s=>encodeURIComponent(String(s==null?'':s).replace(/[~*._]/g,' ')).repl
 const nn=x=>String(x||0).replace('.',',');
 function rurl(o){
   const it=o.items.map(i=>[sn(i.n),sn(i.s),sn(i.f),nn(i.p),nn(i.q)].join('.')).join('*');
-  const h=[sn(o.id),sn(o.date),sn(o.time),sn(o.type),sn(o.pay),nn(o.fee),nn(o.cash),sn(String(o.cust||'').slice(0,40))].join('~')+'~'+it;
+  const h=[sn(o.id),sn(o.date),sn(o.time),sn(o.type),sn(o.pay),nn(o.fee),nn(o.cash),sn(String(o.cust||'').slice(0,40))].join('~')+'~'+it+'~'+(o.paid===false?'0':'1');
   return new URL('receipt.html',location.href).href.split('#')[0]+'#'+h;
 }
 function rmodal(o,fresh){
@@ -1499,11 +1500,59 @@ function rmodal(o,fresh){
     else if(id==='rshare'){try{if(navigator.share){await navigator.share({title:'Mekos Snackbar receipt',text:'Thank you for ordering! Here is your receipt:',url:u});return}}catch(x){return}try{await navigator.clipboard.writeText(u);toast('Link copied')}catch(x){prompt('Copy this link:',u)}}
     else if(id==='rcopy'){try{await navigator.clipboard.writeText(u);toast('Link copied')}catch(x){prompt('Copy this link:',u)}}};
 }
+
+// ---------- paste a Messenger order from the menu page ----------
+function findItem(desc){
+  let best=null;
+  CATS.forEach(c=>c[2].forEach(it=>{
+    if(desc.toLowerCase().indexOf(it[0].toLowerCase())===0&&(!best||it[0].length>best[0].length))best=it;
+  }));
+  if(!best)return null;
+  let rest=desc.slice(best[0].length).trim(),size='',fl='';
+  const m=rest.match(/^\(([^)]*)\)\s*(?:-\s*(.+))?$/);
+  if(m){size=m[1].trim();fl=(m[2]||'').trim()}else if(rest){const m2=rest.match(/^-\s*(.+)$/);if(m2)fl=m2[1].trim();else return null}
+  const opt=best[1].find(o=>o[0].toLowerCase()===size.toLowerCase());
+  if(!opt)return null;
+  if(fl&&best[2]){const f=best[2].find(x=>x.toLowerCase()===fl.toLowerCase());if(f)fl=f}
+  return{n:best[0],s:opt[0],f:fl,p:opt[1]};
+}
+function parseOrder(t){
+  const r={items:[],bad:[],type:'',pay:'',name:'',addr:''};
+  t.split(/\r?\n/).forEach(raw=>{
+    const l=raw.replace(/\u00a0/g,' ').trim();
+    let m=l.match(/^[•\-*]\s*(\d+)\s*x\s+(.+?)\s+-\s+[₱P]\s*([\d,.]+)\s*$/i);
+    if(m){const hit=findItem(m[2].trim());if(hit)r.items.push(Object.assign({q:+m[1]},hit));else r.bad.push(l);return}
+    if(m=l.match(/^Order type:\s*(.+)$/i))r.type=m[1].trim();
+    else if(m=l.match(/^Name:\s*(.+)$/i))r.name=m[1].trim();
+    else if(m=l.match(/^Address:\s*(.+)$/i))r.addr=m[1].trim();
+    else if(m=l.match(/^Payment:\s*(.+)$/i))r.pay=m[1].trim();
+  });
+  return r;
+}
+function openPaste(){
+  $('mp').innerHTML='<h3>📋 Paste customer order</h3><p class="hint">Copy the order message from Messenger, paste it here, then tap Fill order.</p><textarea id="ptxt" class="f" rows="9" placeholder="Paste the order message here"></textarea><button class="btn go" id="pfill">Fill order</button><button class="btn sec" id="pcan">Cancel</button>';
+  $('modal').hidden=false;
+  $('mp').onclick=e=>{
+    if(e.target.id==='pcan'){$('modal').hidden=true;return}
+    if(e.target.id!=='pfill')return;
+    const r=parseOrder($('ptxt').value);
+    if(!r.items.length){toast('No items found. Paste the whole order message.');return}
+    cart=[];r.items.forEach(i=>{const key=[i.n,i.s,i.f].join('|'),ex=cart.find(l=>l.key===key);if(ex)ex.q+=i.q;else cart.push({key,n:i.n,s:i.s,f:i.f,p:i.p,q:i.q})});
+    const tv=/deliver/i.test(r.type)?'Delivery':/pick/i.test(r.type)?'Pick-up':'';
+    if(tv){const rd=document.querySelector('input[name=type][value="'+tv+'"]');if(rd)rd.checked=true}
+    const pv=/gcash/i.test(r.pay)?'GCash':/maya|paymaya/i.test(r.pay)?'Maya':/cash/i.test(r.pay)?'Cash':'';
+    if(pv)$('pay').value=pv;
+    $('paid').checked=$('pay').value==='Cash';
+    $('cust').value=[r.name,r.addr].filter(Boolean).join(', ');
+    drawCart();$('modal').hidden=true;
+    toast(r.bad.length?('Filled '+r.items.length+' item(s). Could not read '+r.bad.length+' line(s): add them by hand.'):'Order filled. Check it, then Record sale.');
+  };
+}
 $('rec').onclick=record;
 
 // ---------- Google Sheets sync ----------
 function payload(o){
-  return{key:cfg.key,order:{id:o.id,date:o.date,time:o.time,type:o.type,pay:o.pay,customer:o.cust,items:o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join('; '),qty:o.items.reduce((a,i)=>a+i.q,0),subtotal:o.sub,fee:o.fee,total:o.total,cash:o.cash,change:o.change,status:o.status},
+  return{key:cfg.key,order:{id:o.id,date:o.date,time:o.time,type:o.type,pay:o.pay,customer:o.cust,items:o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join('; '),qty:o.items.reduce((a,i)=>a+i.q,0),subtotal:o.sub,fee:o.fee,total:o.total,cash:o.cash,change:o.change,status:o.status,paid:o.paid===false?'No':'Yes'},
    items:o.items.map(i=>({id:o.id,date:o.date,time:o.time,item:i.n,size:i.s,flavor:i.f,price:i.p,qty:i.q,amount:i.p*i.q,status:o.status}))};
 }
 async function post(body){
@@ -1532,10 +1581,10 @@ $('sync').onclick=$('sync2').onclick=()=>{if(!cfg.url){toast('Set up Google Shee
 function drawToday(){
   const day=dstr(new Date()),L=orders.filter(o=>o.date===day),ok=L.filter(o=>o.status!=='VOID');
   const sum=f=>ok.filter(f).reduce((a,o)=>a+o.total,0),tot=sum(()=>true);
-  $('stats').innerHTML=[['Sales today',peso(tot)],['Orders',ok.length],['Cash',peso(sum(o=>o.pay==='Cash'))],['GCash / Maya',peso(sum(o=>o.pay!=='Cash'))]].map(a=>`<div class="stat"><small>${a[0]}</small><b>${a[1]}</b></div>`).join('');
-  $('olist').innerHTML=L.length?L.slice().reverse().map(o=>`<div class="ord ${o.status==='VOID'?'void':''}"><div class="h"><span>${o.time} · ${o.id}</span><span>${peso(o.total)}</span></div><small>${o.type} · ${o.pay}${o.cust?' · '+o.cust:''}${o.sent?'':' · ⏳ not sent'}</small><br>${o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join(', ')}${o.status==='VOID'?'':`<button class="mini rc" style="border-color:var(--ok);color:var(--ok)" data-id="${o.id}">Receipt</button><button class="mini" data-id="${o.id}">Void</button>`}</div>`).join(''):'<p class="hint">No sales yet today.</p>';
+  $('stats').innerHTML=[['Sales today',peso(tot)],['Orders',ok.length],['Cash',peso(sum(o=>o.pay==='Cash'))],['GCash / Maya (paid)',peso(sum(o=>o.pay!=='Cash'&&o.paid!==false))],['Unpaid',peso(sum(o=>o.paid===false))],['Items sold',ok.reduce((a,o)=>a+o.items.reduce((b,i)=>b+i.q,0),0)]].map(a=>`<div class="stat"><small>${a[0]}</small><b>${a[1]}</b></div>`).join('');
+  $('olist').innerHTML=L.length?L.slice().reverse().map(o=>`<div class="ord ${o.status==='VOID'?'void':''}"><div class="h"><span>${o.time} · ${o.id}</span><span>${peso(o.total)}</span></div><small>${o.type} · ${o.pay}${o.paid===false?' · <b style="color:var(--red)">UNPAID</b>':''}${o.cust?' · '+o.cust:''}${o.sent?'':' · ⏳ not sent'}</small><br>${o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join(', ')}${o.status==='VOID'?'':`${o.paid===false?`<button class="mini pd" style="border-color:var(--ok);background:var(--ok);color:#fff" data-id="${o.id}">Mark paid</button>`:''}<button class="mini rc" style="border-color:var(--ok);color:var(--ok)" data-id="${o.id}">Receipt</button><button class="mini" data-id="${o.id}">Void</button>`}</div>`).join(''):'<p class="hint">No sales yet today.</p>';
 }
-$('olist').onclick=e=>{const r=e.target.closest('.rc');if(r){rmodal(orders.find(x=>x.id===r.dataset.id),false);return}const b=e.target.closest('.mini');if(!b)return;if(!confirm('Void this sale?'))return;const o=orders.find(x=>x.id===b.dataset.id);o.status='VOID';o.sent=false;sv('mekos_orders',orders);drawToday();syncAll()};
+$('olist').onclick=e=>{const pd=e.target.closest('.pd');if(pd){const o=orders.find(x=>x.id===pd.dataset.id);o.paid=true;o.sent=false;sv('mekos_orders',orders);drawToday();syncAll();toast('Marked as paid. Send the receipt again if the customer needs it.');return}const r=e.target.closest('.rc');if(r){rmodal(orders.find(x=>x.id===r.dataset.id),false);return}const b=e.target.closest('.mini');if(!b)return;if(!confirm('Void this sale?'))return;const o=orders.find(x=>x.id===b.dataset.id);o.status='VOID';o.sent=false;sv('mekos_orders',orders);drawToday();syncAll()};
 $('csv').onclick=()=>{
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
   const rows=[['Order ID','Date','Time','Type','Payment','Customer','Items','Subtotal','Delivery fee','Total','Status']].concat(orders.map(o=>[o.id,o.date,o.time,o.type,o.pay,o.cust,o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join('; '),o.sub,o.fee,o.total,o.status]));
