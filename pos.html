@@ -97,14 +97,16 @@ body{display:flex;flex-direction:column}
 .sm2{display:flex;gap:12px}.sm2 .tot{flex:1}
 @media(min-width:900px){#vSell{flex-direction:row}.cart{flex:0 0 380px;max-height:none;border-radius:0;border-left:3px solid var(--gold);border-top:0}.main{padding:12px}#grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
 .paste{background:#2b1a05!important;color:#ffd43b;border-color:#2b1a05!important}.chk{flex:1;display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:0 4px}.chk input{width:20px;height:20px}
+.bdbar{flex:0 0 auto;background:#c92a2a;color:#fff;font-weight:800;font-size:13px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}.bdbar span{flex:1;min-width:0}.bdbar button{background:#fff;color:#c92a2a;border:0;border-radius:8px;padding:4px 8px;font-weight:800;white-space:nowrap}.dnav{display:flex;gap:8px;margin-bottom:10px}.dnav .f{margin:0;flex:1}.dnav button{flex:0 0 48px;border:2px solid var(--gold);background:var(--card);border-radius:12px;font-size:24px;font-weight:900}
 </style>
 </head>
 <body>
 <div class="top">
 <b>🍔 Mekos POS</b><span id="sync">...</span>
-<button id="bSell" class="on">Sell</button><button id="bToday">Today</button><button id="bSet">⚙️</button>
+<button id="bSell" class="on">Sell</button><button id="bToday">Sales</button><button id="bSet">⚙️</button>
 </div>
 
+<div class="bdbar" id="bdbar" hidden><span id="bdtxt"></span><button id="bdnow">Back to now</button></div>
 <div id="vSell" class="layout">
 <div class="main"><div id="tabs"></div><div id="grid"></div></div>
 <aside class="cart" id="cart">
@@ -117,7 +119,7 @@ body{display:flex;flex-direction:column}
 <label><input type="radio" name="type" value="Delivery"><span>🛵 Delivery</span></label>
 </div>
 <div class="r2"><select class="f" id="pay"><option>Cash</option><option>GCash</option><option>Maya</option></select><input class="f" id="cash" type="number" inputmode="decimal" placeholder="Cash received"><label class="chk" id="paidw" hidden><input type="checkbox" id="paid" checked> Already paid</label></div>
-<div class="r2"><input class="f" id="fee" type="number" inputmode="numeric" placeholder="Delivery fee" value="30" hidden><input class="f" id="cust" placeholder="Customer (optional)"></div>
+<div class="r2"><button class="f" id="whenBtn" title="Record a past sale" style="flex:0 0 48px;padding:6px 0;text-align:center">🕒</button><input class="f" id="fee" type="number" inputmode="numeric" placeholder="Delivery fee" value="30" hidden><input class="f" id="cust" placeholder="Customer (optional)"></div>
 <div class="sm2"><div class="tot"><span>Subtotal</span><b id="tsub">₱0</b></div><div class="tot" id="rfee" hidden><span>Delivery</span><b id="tfee">₱0</b></div></div>
 <div class="tot g"><span>TOTAL</span><span id="tgr">₱0</span></div>
 <div class="tot" id="rchg" hidden><span>Change</span><b id="tchg">₱0</b></div>
@@ -127,8 +129,9 @@ body{display:flex;flex-direction:column}
 </div>
 
 <div id="vToday" class="pad" hidden>
+<div class="dnav"><button id="dprev">‹</button><input type="date" id="dsel" class="f"><button id="dnext">›</button></div>
 <div class="stats" id="stats"></div>
-<div class="cardx"><b>Today's orders</b><div id="olist"></div></div>
+<div class="cardx"><b id="otitle">Orders</b><div id="olist"></div></div>
 <button class="btn sec" id="csv">⬇️ Download all sales (CSV)</button>
 <button class="btn sec" id="sync2">☁️ Send pending sales to Google Sheets</button>
 </div>
@@ -1415,6 +1418,7 @@ window.drawQR=function(cv,t,px){var q=window.makeQR(t);if(!q)return false;var n=
 const CATS=[
 ['Budbod','🍚',[['Budbod Lechon Kawali',[['Small',95],['Medium',110],['Large',125]]]]],
 ['Lechon','🥓',[['Lechon Kawali 200g',[['',150]]]]],
+['Sisig','🍳',[['Crispy Pork Sisig',[['Large',150],['Barkada',230]]]]],
 ['Pizza','🍕',[['All Cheese Pizza',[['',110]]],['Ham & Cheese Pizza',[['',120]]],['Hawaiian Ham Pizza',[['',130]]]]],
 ['Burgers','🍔',[['Quarter Pounder Burger',[['',79]]],['Cheese Quarter Pounder Burger',[['',89]]],['Cheesy Melt Quarter Pounder Burger',[['',109]]]]],
 ['Milk Tea','🧋',[['Milk Tea',[['Medium',29],['Large',39]],['Wintermelon','Okinawa','Red Velvet','Dark Chocolate','Chocolate','Cookies & Cream','Salted Caramel','Black Forest']]]],
@@ -1474,9 +1478,9 @@ $('clr').onclick=()=>{if(cart.length&&!confirm('Clear this order?'))return;cart=
 const dstr=d=>d.toLocaleDateString('en-CA'),tstr=d=>d.toTimeString().slice(0,5);
 function record(){
   if(!cart.length){toast('Add items first');return}
-  const T=totals(),now=new Date(),day=dstr(now),cash=+$('cash').value||0,pay=$('pay').value,paid=pay==='Cash'?true:$('paid').checked;
+  const T=totals(),now=new Date(),day=bd?bd.date:dstr(now),cash=+$('cash').value||0,pay=$('pay').value,paid=pay==='Cash'?true:$('paid').checked;
   const n=orders.filter(o=>o.date===day).length+1,id='M'+day.replace(/-/g,'')+'-'+String(n).padStart(3,'0');
-  const o={id,date:day,time:tstr(now),type:type(),pay,cust:$('cust').value.trim(),items:cart.map(l=>({n:l.n,s:l.s,f:l.f,p:l.p,q:l.q})),sub:T.sub,fee:T.fee,total:T.total,cash:pay==='Cash'?cash:0,change:pay==='Cash'&&cash>=T.total?cash-T.total:0,status:'OK',paid,sent:false};
+  const o={id,date:day,time:bd?bd.time:tstr(now),type:type(),pay,cust:$('cust').value.trim(),items:cart.map(l=>({n:l.n,s:l.s,f:l.f,p:l.p,q:l.q})),sub:T.sub,fee:T.fee,total:T.total,cash:pay==='Cash'?cash:0,change:pay==='Cash'&&cash>=T.total?cash-T.total:0,status:'OK',paid,sent:false};
   orders.push(o);sv('mekos_orders',orders);
   rmodal(o,true);
   cart=[];$('cust').value='';$('cash').value='';$('paid').checked=true;$('cart').classList.remove('open');drawCart();syncAll();
@@ -1579,10 +1583,11 @@ $('sync').onclick=$('sync2').onclick=()=>{if(!cfg.url){toast('Set up Google Shee
 
 // ---------- today / reports ----------
 function drawToday(){
-  const day=dstr(new Date()),L=orders.filter(o=>o.date===day),ok=L.filter(o=>o.status!=='VOID');
+  const day=$('dsel').value||dstr(new Date()),L=orders.filter(o=>o.date===day),ok=L.filter(o=>o.status!=='VOID');
   const sum=f=>ok.filter(f).reduce((a,o)=>a+o.total,0),tot=sum(()=>true);
-  $('stats').innerHTML=[['Sales today',peso(tot)],['Orders',ok.length],['Cash',peso(sum(o=>o.pay==='Cash'))],['GCash / Maya (paid)',peso(sum(o=>o.pay!=='Cash'&&o.paid!==false))],['Unpaid',peso(sum(o=>o.paid===false))],['Items sold',ok.reduce((a,o)=>a+o.items.reduce((b,i)=>b+i.q,0),0)]].map(a=>`<div class="stat"><small>${a[0]}</small><b>${a[1]}</b></div>`).join('');
-  $('olist').innerHTML=L.length?L.slice().reverse().map(o=>`<div class="ord ${o.status==='VOID'?'void':''}"><div class="h"><span>${o.time} · ${o.id}</span><span>${peso(o.total)}</span></div><small>${o.type} · ${o.pay}${o.paid===false?' · <b style="color:var(--red)">UNPAID</b>':''}${o.cust?' · '+o.cust:''}${o.sent?'':' · ⏳ not sent'}</small><br>${o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join(', ')}${o.status==='VOID'?'':`${o.paid===false?`<button class="mini pd" style="border-color:var(--ok);background:var(--ok);color:#fff" data-id="${o.id}">Mark paid</button>`:''}<button class="mini rc" style="border-color:var(--ok);color:var(--ok)" data-id="${o.id}">Receipt</button><button class="mini" data-id="${o.id}">Void</button>`}</div>`).join(''):'<p class="hint">No sales yet today.</p>';
+  $('stats').innerHTML=[['Sales',peso(tot)],['Orders',ok.length],['Cash',peso(sum(o=>o.pay==='Cash'))],['GCash / Maya (paid)',peso(sum(o=>o.pay!=='Cash'&&o.paid!==false))],['Unpaid',peso(sum(o=>o.paid===false))],['Items sold',ok.reduce((a,o)=>a+o.items.reduce((b,i)=>b+i.q,0),0)],['Last 7 days',peso(rng(day,6))],['This month',peso(orders.filter(o=>o.status!=='VOID'&&o.date.slice(0,7)===day.slice(0,7)).reduce((a,o)=>a+o.total,0))]].map(a=>`<div class="stat"><small>${a[0]}</small><b>${a[1]}</b></div>`).join('');
+  $('otitle').textContent=(day===dstr(new Date())?'Today':fdt(day,'00:00').split(',').slice(0,2).join(',')).toString()+' · '+L.length+' order(s)';
+  $('olist').innerHTML=L.length?L.slice().reverse().map(o=>`<div class="ord ${o.status==='VOID'?'void':''}"><div class="h"><span>${o.time} · ${o.id}</span><span>${peso(o.total)}</span></div><small>${o.type} · ${o.pay}${o.paid===false?' · <b style="color:var(--red)">UNPAID</b>':''}${o.cust?' · '+o.cust:''}${o.sent?'':' · ⏳ not sent'}</small><br>${o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join(', ')}${o.status==='VOID'?'':`${o.paid===false?`<button class="mini pd" style="border-color:var(--ok);background:var(--ok);color:#fff" data-id="${o.id}">Mark paid</button>`:''}<button class="mini rc" style="border-color:var(--ok);color:var(--ok)" data-id="${o.id}">Receipt</button><button class="mini" data-id="${o.id}">Void</button>`}</div>`).join(''):'<p class="hint">No sales on this day.</p>';
 }
 $('olist').onclick=e=>{const pd=e.target.closest('.pd');if(pd){const o=orders.find(x=>x.id===pd.dataset.id);o.paid=true;o.sent=false;sv('mekos_orders',orders);drawToday();syncAll();toast('Marked as paid. Send the receipt again if the customer needs it.');return}const r=e.target.closest('.rc');if(r){rmodal(orders.find(x=>x.id===r.dataset.id),false);return}const b=e.target.closest('.mini');if(!b)return;if(!confirm('Void this sale?'))return;const o=orders.find(x=>x.id===b.dataset.id);o.status='VOID';o.sent=false;sv('mekos_orders',orders);drawToday();syncAll()};
 $('csv').onclick=()=>{
@@ -1592,8 +1597,31 @@ $('csv').onclick=()=>{
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mekos-sales-'+dstr(new Date())+'.csv';document.body.appendChild(a);a.click();a.remove();
 };
 
+
+// ---------- past sales / history ----------
+let bd=null,lastToday=dstr(new Date());
+function rng(day,back){const s=new Date(day+'T00:00:00');s.setDate(s.getDate()-back);const a=dstr(s);return orders.filter(o=>o.status!=='VOID'&&o.date>=a&&o.date<=day).reduce((x,o)=>x+o.total,0)}
+const fdt=(d,t)=>new Date(d+'T'+t).toLocaleString('en-PH',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+function updBd(){$('bdbar').hidden=!bd;$('whenBtn').style.background=bd?'var(--red)':'';if(bd)$('bdtxt').textContent='🕒 Recording a PAST sale: '+fdt(bd.date,bd.time)}
+function openWhen(){
+  const now=new Date(),d=bd?bd.date:dstr(now),t=bd?bd.time:tstr(now);
+  $('mp').innerHTML=`<h3>🕒 Date & time of the sale</h3><p class="hint">Use this when you forgot to record a sale. Sales will be saved with this date and time until you tap "Back to now".</p><input class="f" type="date" id="wd" value="${d}"><input class="f" type="time" id="wt" value="${t}"><button class="btn go" id="wok">Use this date & time</button><button class="btn sec" id="wnow">Back to now (normal)</button>`;
+  $('modal').hidden=false;
+  $('mp').onclick=e=>{
+    if(e.target.id==='wnow'){bd=null;$('dsel').value=dstr(new Date());updBd();$('modal').hidden=true;toast('Back to recording sales right now');return}
+    if(e.target.id!=='wok')return;
+    const dv=$('wd').value,tv=$('wt').value;if(!dv||!tv){toast('Pick the date and the time');return}
+    if(new Date(dv+'T'+tv)>new Date()&&!confirm('That date and time is in the future. Use it anyway?'))return;
+    bd={date:dv,time:tv};$('dsel').value=dv;updBd();$('modal').hidden=true;toast('Next sales will be saved as '+fdt(dv,tv));
+  };
+}
+$('whenBtn').onclick=openWhen;$('bdtxt').onclick=openWhen;$('bdnow').onclick=()=>{bd=null;$('dsel').value=dstr(new Date());updBd();toast('Back to recording sales right now')};
+$('dsel').value=dstr(new Date());
+$('dprev').onclick=()=>{const d=new Date($('dsel').value+'T00:00:00');d.setDate(d.getDate()-1);$('dsel').value=dstr(d);drawToday()};
+$('dnext').onclick=()=>{const d=new Date($('dsel').value+'T00:00:00');d.setDate(d.getDate()+1);$('dsel').value=dstr(d);drawToday()};
+$('dsel').onchange=drawToday;
 // ---------- views & settings ----------
-function show(v){['Sell','Today','Set'].forEach(x=>{$('v'+x).hidden=x!==v;$('b'+x).classList.toggle('on',x===v)});$('cart').style.display=v==='Sell'?'':'none';if(v==='Today')drawToday();if(v==='Set'){$('sUrl').value=cfg.url;$('sKey').value=cfg.key}}
+function show(v){['Sell','Today','Set'].forEach(x=>{$('v'+x).hidden=x!==v;$('b'+x).classList.toggle('on',x===v)});$('cart').style.display=v==='Sell'?'':'none';if(v==='Today'){if($('dsel').value===lastToday){lastToday=dstr(new Date());$('dsel').value=lastToday}drawToday()}if(v==='Set'){$('sUrl').value=cfg.url;$('sKey').value=cfg.key}}
 $('bSell').onclick=()=>show('Sell');$('bToday').onclick=()=>show('Today');$('bSet').onclick=()=>show('Set');
 $('sSave').onclick=()=>{cfg={url:$('sUrl').value.trim(),key:$('sKey').value.trim()};sv('mekos_cfg',cfg);badge();toast('Saved');syncAll()};
 $('sTest').onclick=async()=>{
