@@ -95,7 +95,7 @@ footer{text-align:center;color:var(--mute);font-size:12px;margin-top:22px}
 <div class="wrap">
 <div class="open">🕒 Open 10am to 2am, every day!</div>
 <div class="hint0">👇 Tap items to build your order, then send it straight to us on Messenger!</div>
-<nav><a href="#budbod">🍚 Budbod</a><a href="#lechon">🥓 Lechon</a><a href="#sisig">🍳 Sisig</a><a href="#pizza">🍕 Pizza</a><a href="#burgers">🍔 Burgers</a><a href="#milktea">🧋 Milk Tea</a><a href="#coffee">☕ Coffee</a><a href="#fruit">🍓 Fruit Tea</a></nav>
+<nav><a href="#budbod">🍚 Budbod</a><a href="#lechon">🥓 Lechon</a><a href="#sisig">🍳 Sisig</a><a href="#bilao">🍝 Bilao</a><a href="#pizza">🍕 Pizza</a><a href="#burgers">🍔 Burgers</a><a href="#milktea">🧋 Milk Tea</a><a href="#coffee">☕ Coffee</a><a href="#fruit">🍓 Fruit Tea</a></nav>
 <div id="menu"></div>
 <section id="info" style="--c1:#e03131;--c2:#f76707"><div class="sh"><span class="em">🛵</span><h2>Delivery &amp; Ordering</h2></div>
 <div class="info">
@@ -140,9 +140,10 @@ const FT=['Green Apple','Blueberry','Strawberry'];
 const two=[['Medium',29],['Large',39]];
 const CATS=[
 {id:'budbod',e:'🍚',t:'Budbod',c1:'#f59f00',c2:'#e8590c',items:[{n:'Budbod Lechon Kawali',d:'Fried rice topped with crispy lechon kawali and a fluffy scrambled egg',star:1,o:[['Small',95],['Medium',110],['Large',125]]}]},
-{id:'lechon',e:'🥓',t:'Lechon Kawali',c1:'#e8590c',c2:'#c92a2a',items:[{n:'Lechon Kawali 200g',d:'Crispy, golden and juicy',o:[['',150]]}]},
+{id:'lechon',e:'🥓',t:'Lechon Kawali',c1:'#e8590c',c2:'#c92a2a',items:[{n:'Lechon Kawali',d:'Crispy, golden and juicy',o:[['200g',150],['450g',300]]}]},
 {id:'sisig',e:'🍳',t:'Crispy Pork Sisig',c1:'#c2410c',c2:'#7c2d12',items:[{n:'Crispy Pork Sisig',d:'Choose Large or Barkada size',o:[['Large',150],['Barkada',230]]}]},
-{id:'pizza',e:'🍕',t:'Pizza',note:'11-inch',c1:'#e03131',c2:'#c2255c',items:[{n:'All Cheese Pizza',d:'Gooey, stretchy cheese',o:[['',110]]},{n:'Ham & Cheese Pizza',d:'Savory ham with melted cheese',o:[['',120]]},{n:'Hawaiian Ham Pizza',d:'Sweet pineapple meets ham',o:[['',130]]}]},
+{id:'bilao',e:'🍝',t:'Bilao (Party Trays)',c1:'#0f766e',c2:'#115e59',items:[{n:'Bilao Pancit con Lechon',d:'Pancit topped with crispy lechon',o:[['Medium',500],['Large',700]]},{n:'Bilao Spaghetti',d:'Spaghetti topped with hotdog and cheese',o:[['Medium',550],['Large',750]]},{n:'Bilao Creamy Carbonara',d:'Creamy pasta with ham, bacon and cheese',o:[['Medium',600],['Large',800]]},{n:'Pizza Bilao Bundle',d:'3 boxes of pizza + 1 Medium Pancit con Lechon + 1 Medium Spaghetti. Write your 3 pizza flavors in the notes.',o:[['',1399]]}]},
+{id:'pizza',e:'🍕',t:'Pizza',note:'11-inch',c1:'#e03131',c2:'#c2255c',items:[{n:'All Cheese Pizza',d:'Gooey, stretchy cheese',o:[['',110]]},{n:'Ham & Cheese Pizza',d:'Savory ham with melted cheese',o:[['',120]]},{n:'Hawaiian Ham Pizza',d:'Sweet pineapple meets ham',o:[['',130]]},{n:'Pepperoni Pizza',d:'Classic pepperoni',o:[['',165]]},{n:'Bacon Overload Pizza',d:'Loaded with bacon',o:[['',165]]},{n:'Hawaiian Bacon Pizza',d:'Sweet pineapple meets bacon',o:[['',165]]}]},
 {id:'burgers',e:'🍔',t:'Burgers',c1:'#d9480f',c2:'#a61e4d',items:[{n:'Quarter Pounder Burger',d:'Juicy quarter pound patty',o:[['',79]]},{n:'Cheese Quarter Pounder Burger',d:'With a slice of melted cheese',o:[['',89]]},{n:'Cheesy Melt Quarter Pounder Burger',d:'Extra cheesy, extra melty',o:[['',109]]}]},
 {id:'milktea',e:'🧋',t:'Milk Tea',c1:'#9c36b5',c2:'#d6336c',items:[{n:'Milk Tea',d:'Choose your size and flavor',o:two,f:MT}]},
 {id:'coffee',e:'☕',t:'Iced Coffee',c1:'#8c5a2b',c2:'#d9480f',items:[{n:'Iced Coffee',d:'Choose your size and flavor',o:two,f:IC}]},

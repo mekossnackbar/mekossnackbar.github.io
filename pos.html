@@ -1417,9 +1417,10 @@ window.drawQR=function(cv,t,px){var q=window.makeQR(t);if(!q)return false;var n=
 <script>
 const CATS=[
 ['Budbod','🍚',[['Budbod Lechon Kawali',[['Small',95],['Medium',110],['Large',125]]]]],
-['Lechon','🥓',[['Lechon Kawali 200g',[['',150]]]]],
+['Lechon','🥓',[['Lechon Kawali',[['200g',150],['450g',300]]]]],
 ['Sisig','🍳',[['Crispy Pork Sisig',[['Large',150],['Barkada',230]]]]],
-['Pizza','🍕',[['All Cheese Pizza',[['',110]]],['Ham & Cheese Pizza',[['',120]]],['Hawaiian Ham Pizza',[['',130]]]]],
+['Bilao','🍝',[['Bilao Pancit con Lechon',[['Medium',500],['Large',700]]],['Bilao Spaghetti',[['Medium',550],['Large',750]]],['Bilao Creamy Carbonara',[['Medium',600],['Large',800]]],['Pizza Bilao Bundle',[['',1399]]]]],
+['Pizza','🍕',[['All Cheese Pizza',[['',110]]],['Ham & Cheese Pizza',[['',120]]],['Hawaiian Ham Pizza',[['',130]]],['Pepperoni Pizza',[['',165]]],['Bacon Overload Pizza',[['',165]]],['Hawaiian Bacon Pizza',[['',165]]]]],
 ['Burgers','🍔',[['Quarter Pounder Burger',[['',79]]],['Cheese Quarter Pounder Burger',[['',89]]],['Cheesy Melt Quarter Pounder Burger',[['',109]]]]],
 ['Milk Tea','🧋',[['Milk Tea',[['Medium',29],['Large',39]],['Wintermelon','Okinawa','Red Velvet','Dark Chocolate','Chocolate','Cookies & Cream','Salted Caramel','Black Forest']]]],
 ['Iced Coffee','☕',[['Iced Coffee',[['Medium',29],['Large',39]],['Americano','Latte','Mocha','Caramel Macchiato']]]],
@@ -1513,6 +1514,7 @@ function findItem(desc){
   }));
   if(!best)return null;
   let rest=desc.slice(best[0].length).trim(),size='',fl='';
+  const gm=rest.match(/^(\d+\s*g)$/i);if(gm){rest='('+gm[1].replace(/\s+/g,'')+')'}
   const m=rest.match(/^\(([^)]*)\)\s*(?:-\s*(.+))?$/);
   if(m){size=m[1].trim();fl=(m[2]||'').trim()}else if(rest){const m2=rest.match(/^-\s*(.+)$/);if(m2)fl=m2[1].trim();else return null}
   const opt=best[1].find(o=>o[0].toLowerCase()===size.toLowerCase());
