@@ -98,7 +98,25 @@ body{display:flex;flex-direction:column}
 @media(min-width:900px){#vSell{flex-direction:row}.cart{flex:0 0 380px;max-height:none;border-radius:0;border-left:3px solid var(--gold);border-top:0}.main{padding:12px}#grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
 .paste{background:#2b1a05!important;color:#ffd43b;border-color:#2b1a05!important}.chk{flex:1;display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;padding:0 4px}.chk input{width:20px;height:20px}
 .bdbar{flex:0 0 auto;background:#c92a2a;color:#fff;font-weight:800;font-size:13px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}.bdbar span{flex:1;min-width:0}.bdbar button{background:#fff;color:#c92a2a;border:0;border-radius:8px;padding:4px 8px;font-weight:800;white-space:nowrap}.dnav{display:flex;gap:8px;margin-bottom:10px}.dnav .f{margin:0;flex:1}.dnav button{flex:0 0 48px;border:2px solid var(--gold);background:var(--card);border-radius:12px;font-size:24px;font-weight:900}
+#printArea{display:none}
+.lbl{box-sizing:border-box;overflow:hidden;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;padding:1.4mm 2mm;display:flex;flex-direction:column;justify-content:space-between;line-height:1.12}
+.lbl .lm{font-weight:900;text-transform:uppercase;word-break:break-word}
+.lbl .ls{font-weight:700}
+.lbl .lf{display:flex;justify-content:space-between;gap:2mm;font-size:7.5pt;border-top:.3mm solid #000;padding-top:.6mm}
+.lblp{border:2px dashed #888;margin:8px auto;transform-origin:top left}
+.lrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dotted var(--line)}
+.lrow input[type=checkbox]{width:24px;height:24px;flex:0 0 auto}
+.lrow .nm{flex:1;font-weight:700;font-size:15px;line-height:1.2}.lrow small{display:block;color:var(--mute);font-weight:600}
+.lrow input[type=number]{width:64px;flex:0 0 auto;margin:0;text-align:center}
+@media print{
+ html,body{height:auto!important;overflow:visible!important;background:#fff!important;display:block!important}
+ body>*:not(#printArea){display:none!important}
+ #printArea{display:block!important}
+ .lbl{break-after:page;page-break-after:always}
+ .lbl:last-child{break-after:auto;page-break-after:auto}
+}
 </style>
+<style id="pgs"></style>
 </head>
 <body>
 <div class="top">
@@ -145,10 +163,20 @@ body{display:flex;flex-direction:column}
 <button class="btn go" id="sSave">Save settings</button>
 <button class="btn sec" id="sTest">Test connection</button>
 </div>
+<div class="cardx" id="lblset">
+<b>🏷️ Label stickers</b>
+<p class="hint">Label size in millimeters (width × height). Choose the same paper size in your printer.</p>
+<div class="r2"><input class="f" id="lw" type="number" inputmode="decimal" placeholder="Width mm"><input class="f" id="lh" type="number" inputmode="decimal" placeholder="Height mm"></div>
+<p class="hint">Print labels for these categories by default (you can still untick any product when printing):</p>
+<div id="lcats"></div>
+<label class="chk" style="margin:8px 0;padding:0"><input type="checkbox" id="lauto"> Open the label screen right after each sale</label>
+<button class="btn go" id="lsave">Save label settings</button>
+</div>
 <div class="cardx"><b>Data on this device</b><p class="hint">Sales are saved on this phone first, then sent to Google Sheets. If the internet is off, they wait and send later. Do not clear your browser data while sales are pending.</p></div>
 </div>
 
 <div class="modal" id="modal" hidden><div class="mp" id="mp"></div></div>
+<div id="printArea"></div>
 <div id="toast" hidden></div>
 
 <script>
@@ -1430,7 +1458,7 @@ const $=id=>document.getElementById(id);
 const peso=n=>'₱'+(Math.round(n*100)/100).toLocaleString('en-PH');
 function ls(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('Could not save on this device!')}}
-let orders=ls('mekos_orders',[]),cfg=ls('mekos_cfg',{url:'',key:''}),cart=[],cat=0,tt;
+let orders=ls('mekos_orders',[]),cfg=Object.assign({url:'',key:'',lw:50,lh:30,lcats:{},lauto:false},ls('mekos_cfg',{})),cart=[],cat=0,tt;
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
 
 // ---------- menu ----------
@@ -1483,7 +1511,7 @@ function record(){
   const n=orders.filter(o=>o.date===day).length+1,id='M'+day.replace(/-/g,'')+'-'+String(n).padStart(3,'0');
   const o={id,date:day,time:bd?bd.time:tstr(now),type:type(),pay,cust:$('cust').value.trim(),items:cart.map(l=>({n:l.n,s:l.s,f:l.f,p:l.p,q:l.q})),sub:T.sub,fee:T.fee,total:T.total,cash:pay==='Cash'?cash:0,change:pay==='Cash'&&cash>=T.total?cash-T.total:0,status:'OK',paid,sent:false};
   orders.push(o);sv('mekos_orders',orders);
-  rmodal(o,true);
+  if(cfg.lauto)openLabels(o,true);else rmodal(o,true);
   cart=[];$('cust').value='';$('cash').value='';$('paid').checked=true;$('cart').classList.remove('open');drawCart();syncAll();
 }
 
@@ -1497,10 +1525,11 @@ function rurl(o){
 }
 function rmodal(o,fresh){
   const u=rurl(o),chg=o.change?`<p style="font-size:22px;margin:4px 0">Change: <b>${peso(o.change)}</b></p>`:'';
-  $('mp').innerHTML=`<h3>${fresh?'✅ Sale recorded':'🧾 Receipt'}</h3><p style="margin:2px 0">${o.id}</p><p style="font-size:26px;font-weight:900;color:var(--red);margin:2px 0">${peso(o.total)}</p>${chg}<div style="text-align:center;margin:10px 0"><canvas id="qrc" style="max-width:100%;border:2px solid var(--line);border-radius:12px"></canvas><p class="hint">Customer scans this QR code to see their receipt</p></div><button class="btn sec" id="rshare">📤 Share receipt link</button><button class="btn sec" id="rcopy">🔗 Copy link</button><button class="btn go" id="pok">${fresh?'New order':'Close'}</button>`;
+  $('mp').innerHTML=`<h3>${fresh?'✅ Sale recorded':'🧾 Receipt'}</h3><p style="margin:2px 0">${o.id}</p><p style="font-size:26px;font-weight:900;color:var(--red);margin:2px 0">${peso(o.total)}</p>${chg}<div style="text-align:center;margin:10px 0"><canvas id="qrc" style="max-width:100%;border:2px solid var(--line);border-radius:12px"></canvas><p class="hint">Customer scans this QR code to see their receipt</p></div><button class="btn sec" id="rlab">🏷️ Print labels</button><button class="btn sec" id="rshare">📤 Share receipt link</button><button class="btn sec" id="rcopy">🔗 Copy link</button><button class="btn go" id="pok">${fresh?'New order':'Close'}</button>`;
   $('modal').hidden=false;
   if(!drawQR($('qrc'),u,Math.min(320,window.innerWidth-70)))$('qrc').outerHTML='<p>Could not make the QR code. Use Share link instead.</p>';
   $('mp').onclick=async e=>{const id=e.target.id;
+    if(id==='rlab'){openLabels(o,fresh);return}
     if(id==='pok')$('modal').hidden=true;
     else if(id==='rshare'){try{if(navigator.share){await navigator.share({title:'Mekos Snackbar receipt',text:'Thank you for ordering! Here is your receipt:',url:u});return}}catch(x){return}try{await navigator.clipboard.writeText(u);toast('Link copied')}catch(x){prompt('Copy this link:',u)}}
     else if(id==='rcopy'){try{await navigator.clipboard.writeText(u);toast('Link copied')}catch(x){prompt('Copy this link:',u)}}};
@@ -1554,6 +1583,53 @@ function openPaste(){
     toast(r.bad.length?('Filled '+r.items.length+' item(s). Could not read '+r.bad.length+' line(s): add them by hand.'):'Order filled. Check it, then Record sale.');
   };
 }
+
+// ---------- label stickers ----------
+const LCATS=CATS.map(c=>c[0]);
+function catOf(n){for(const c of CATS)for(const it of c[2])if(it[0]===n)return c[0];return ''}
+function fillLabelSettings(){
+  $('lw').value=cfg.lw;$('lh').value=cfg.lh;$('lauto').checked=!!cfg.lauto;
+  $('lcats').innerHTML=LCATS.map(n=>`<label class="chk" style="padding:3px 0"><input type="checkbox" data-c="${n}" ${cfg.lcats[n]===false?'':'checked'}> ${n}</label>`).join('');
+}
+$('lsave').onclick=()=>{
+  const lw=+$('lw').value,lh=+$('lh').value;if(!(lw>=20&&lh>=15)){toast('Enter the label width and height in mm');return}
+  const lc={};document.querySelectorAll('#lcats input').forEach(i=>lc[i.dataset.c]=i.checked);
+  cfg=Object.assign({},cfg,{lw,lh,lcats:lc,lauto:$('lauto').checked});sv('mekos_cfg',cfg);toast('Label settings saved');
+};
+const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function labelHTML(o,it,k,total){
+  const hasF=!!it.f,main=hasF?it.f:it.n,sub=hasF?(it.n+(it.s?' - '+it.s:'')):(it.s||'');
+  const len=main.length,mp=len>22?9.5:len>16?11:len>11?13:15;
+  const name=String(o.cust||'').split(',')[0].trim().slice(0,22);
+  const d=new Date(o.date+'T'+o.time),ds=d.toLocaleDateString('en-PH',{month:'numeric',day:'numeric'})+' '+d.toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'});
+  return `<div class="lbl" style="width:${cfg.lw}mm;height:${cfg.lh}mm"><div><div class="lm" style="font-size:${mp}pt">${esc2(main)}</div><div class="ls" style="font-size:9pt">${esc2(sub)}</div></div><div><div class="lf"><span>#${esc2(o.id.slice(-3))}${name?' · '+esc2(name):''}</span><span>${esc2(o.type)}</span></div><div class="lf" style="border:0;padding:0"><span>${esc2(ds)}</span><span>${total>1?(k+'/'+total):''}</span></div></div></div>`;
+}
+function openLabels(o,after){
+  const L=o.items.map((it,i)=>({it,on:cfg.lcats[catOf(it.n)]!==false,n:it.q}));
+  const close=()=>{if(after)rmodal(o,true);else $('modal').hidden=true};
+  const draw=()=>{
+    const cnt=L.reduce((a,l)=>a+(l.on?Math.max(0,+l.n||0):0),0);
+    const first=L.find(l=>l.on&&l.n>0);
+    $('mp').innerHTML=`<h3>🏷️ Print labels</h3><p class="hint">${o.id}. One sticker is printed for each piece. Untick a product to skip it, or change how many labels it needs.</p>
+    ${L.map((l,i)=>`<div class="lrow"><input type="checkbox" data-i="${i}" ${l.on?'checked':''}><div class="nm">${esc2(l.it.n)}${l.it.s?' ('+esc2(l.it.s)+')':''}${l.it.f?' - '+esc2(l.it.f):''}<small>${l.it.q} ordered</small></div><input class="f" type="number" min="0" inputmode="numeric" data-n="${i}" value="${l.n}"></div>`).join('')}
+    <div style="max-width:100%;overflow:hidden">${first?`<p class="hint" style="margin:8px 0 0">Preview of the first label (${cfg.lw} × ${cfg.lh} mm):</p><div class="lblp" style="width:${cfg.lw}mm;height:${cfg.lh}mm">${labelHTML(o,first.it,1,first.n)}</div>`:''}</div>
+    <button class="btn go" id="lprint" ${cnt?'':'disabled style="opacity:.5"'}>🖨️ Print ${cnt} label${cnt===1?'':'s'}</button>
+    <button class="btn sec" id="lcan">${after?'Skip labels':'Close'}</button>`;
+  };
+  draw();$('modal').hidden=false;
+  $('mp').onchange=e=>{const t=e.target;if(t.dataset.i!==undefined){L[+t.dataset.i].on=t.checked;draw()}else if(t.dataset.n!==undefined){L[+t.dataset.n].n=+t.value;draw()}};
+  $('mp').onclick=e=>{
+    if(e.target.id==='lcan'){close();return}
+    if(e.target.id==='lprint'){
+      let h='';L.forEach(l=>{if(!l.on)return;const n=Math.max(0,Math.floor(+l.n||0));for(let k=1;k<=n;k++)h+=labelHTML(o,l.it,k,n)});
+      if(!h)return;
+      $('pgs').textContent=`@page{size:${cfg.lw}mm ${cfg.lh}mm;margin:0}`;
+      $('printArea').innerHTML=h;
+      setTimeout(()=>{window.print()},80);
+    }
+  };
+}
+window.addEventListener('afterprint',()=>{$('printArea').innerHTML=''});
 $('rec').onclick=record;
 
 // ---------- Google Sheets sync ----------
@@ -1589,9 +1665,9 @@ function drawToday(){
   const sum=f=>ok.filter(f).reduce((a,o)=>a+o.total,0),tot=sum(()=>true);
   $('stats').innerHTML=[['Sales',peso(tot)],['Orders',ok.length],['Cash',peso(sum(o=>o.pay==='Cash'))],['GCash / Maya (paid)',peso(sum(o=>o.pay!=='Cash'&&o.paid!==false))],['Unpaid',peso(sum(o=>o.paid===false))],['Items sold',ok.reduce((a,o)=>a+o.items.reduce((b,i)=>b+i.q,0),0)],['Last 7 days',peso(rng(day,6))],['This month',peso(orders.filter(o=>o.status!=='VOID'&&o.date.slice(0,7)===day.slice(0,7)).reduce((a,o)=>a+o.total,0))]].map(a=>`<div class="stat"><small>${a[0]}</small><b>${a[1]}</b></div>`).join('');
   $('otitle').textContent=(day===dstr(new Date())?'Today':fdt(day,'00:00').split(',').slice(0,2).join(',')).toString()+' · '+L.length+' order(s)';
-  $('olist').innerHTML=L.length?L.slice().reverse().map(o=>`<div class="ord ${o.status==='VOID'?'void':''}"><div class="h"><span>${o.time} · ${o.id}</span><span>${peso(o.total)}</span></div><small>${o.type} · ${o.pay}${o.paid===false?' · <b style="color:var(--red)">UNPAID</b>':''}${o.cust?' · '+o.cust:''}${o.sent?'':' · ⏳ not sent'}</small><br>${o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join(', ')}${o.status==='VOID'?'':`${o.paid===false?`<button class="mini pd" style="border-color:var(--ok);background:var(--ok);color:#fff" data-id="${o.id}">Mark paid</button>`:''}<button class="mini rc" style="border-color:var(--ok);color:var(--ok)" data-id="${o.id}">Receipt</button><button class="mini" data-id="${o.id}">Void</button>`}</div>`).join(''):'<p class="hint">No sales on this day.</p>';
+  $('olist').innerHTML=L.length?L.slice().reverse().map(o=>`<div class="ord ${o.status==='VOID'?'void':''}"><div class="h"><span>${o.time} · ${o.id}</span><span>${peso(o.total)}</span></div><small>${o.type} · ${o.pay}${o.paid===false?' · <b style="color:var(--red)">UNPAID</b>':''}${o.cust?' · '+o.cust:''}${o.sent?'':' · ⏳ not sent'}</small><br>${o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join(', ')}${o.status==='VOID'?'':`${o.paid===false?`<button class="mini pd" style="border-color:var(--ok);background:var(--ok);color:#fff" data-id="${o.id}">Mark paid</button>`:''}<button class="mini lb" style="border-color:#1971c2;color:#1971c2" data-id="${o.id}">Labels</button><button class="mini rc" style="border-color:var(--ok);color:var(--ok)" data-id="${o.id}">Receipt</button><button class="mini" data-id="${o.id}">Void</button>`}</div>`).join(''):'<p class="hint">No sales on this day.</p>';
 }
-$('olist').onclick=e=>{const pd=e.target.closest('.pd');if(pd){const o=orders.find(x=>x.id===pd.dataset.id);o.paid=true;o.sent=false;sv('mekos_orders',orders);drawToday();syncAll();toast('Marked as paid. Send the receipt again if the customer needs it.');return}const r=e.target.closest('.rc');if(r){rmodal(orders.find(x=>x.id===r.dataset.id),false);return}const b=e.target.closest('.mini');if(!b)return;if(!confirm('Void this sale?'))return;const o=orders.find(x=>x.id===b.dataset.id);o.status='VOID';o.sent=false;sv('mekos_orders',orders);drawToday();syncAll()};
+$('olist').onclick=e=>{const lb=e.target.closest('.lb');if(lb){openLabels(orders.find(x=>x.id===lb.dataset.id),false);return}const pd=e.target.closest('.pd');if(pd){const o=orders.find(x=>x.id===pd.dataset.id);o.paid=true;o.sent=false;sv('mekos_orders',orders);drawToday();syncAll();toast('Marked as paid. Send the receipt again if the customer needs it.');return}const r=e.target.closest('.rc');if(r){rmodal(orders.find(x=>x.id===r.dataset.id),false);return}const b=e.target.closest('.mini');if(!b)return;if(!confirm('Void this sale?'))return;const o=orders.find(x=>x.id===b.dataset.id);o.status='VOID';o.sent=false;sv('mekos_orders',orders);drawToday();syncAll()};
 $('csv').onclick=()=>{
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
   const rows=[['Order ID','Date','Time','Type','Payment','Customer','Items','Subtotal','Delivery fee','Total','Status']].concat(orders.map(o=>[o.id,o.date,o.time,o.type,o.pay,o.cust,o.items.map(i=>i.q+'x '+ltxt({n:i.n,s:i.s,f:i.f})).join('; '),o.sub,o.fee,o.total,o.status]));
@@ -1623,11 +1699,11 @@ $('dprev').onclick=()=>{const d=new Date($('dsel').value+'T00:00:00');d.setDate(
 $('dnext').onclick=()=>{const d=new Date($('dsel').value+'T00:00:00');d.setDate(d.getDate()+1);$('dsel').value=dstr(d);drawToday()};
 $('dsel').onchange=drawToday;
 // ---------- views & settings ----------
-function show(v){['Sell','Today','Set'].forEach(x=>{$('v'+x).hidden=x!==v;$('b'+x).classList.toggle('on',x===v)});$('cart').style.display=v==='Sell'?'':'none';if(v==='Today'){if($('dsel').value===lastToday){lastToday=dstr(new Date());$('dsel').value=lastToday}drawToday()}if(v==='Set'){$('sUrl').value=cfg.url;$('sKey').value=cfg.key}}
+function show(v){['Sell','Today','Set'].forEach(x=>{$('v'+x).hidden=x!==v;$('b'+x).classList.toggle('on',x===v)});$('cart').style.display=v==='Sell'?'':'none';if(v==='Today'){if($('dsel').value===lastToday){lastToday=dstr(new Date());$('dsel').value=lastToday}drawToday()}if(v==='Set'){$('sUrl').value=cfg.url;$('sKey').value=cfg.key;fillLabelSettings()}}
 $('bSell').onclick=()=>show('Sell');$('bToday').onclick=()=>show('Today');$('bSet').onclick=()=>show('Set');
-$('sSave').onclick=()=>{cfg={url:$('sUrl').value.trim(),key:$('sKey').value.trim()};sv('mekos_cfg',cfg);badge();toast('Saved');syncAll()};
+$('sSave').onclick=()=>{cfg=Object.assign({},cfg,{url:$('sUrl').value.trim(),key:$('sKey').value.trim()});sv('mekos_cfg',cfg);badge();toast('Saved');syncAll()};
 $('sTest').onclick=async()=>{
-  cfg={url:$('sUrl').value.trim(),key:$('sKey').value.trim()};sv('mekos_cfg',cfg);
+  cfg=Object.assign({},cfg,{url:$('sUrl').value.trim(),key:$('sKey').value.trim()});sv('mekos_cfg',cfg);
   if(!cfg.url||!cfg.key){toast('Enter URL and key first');return}
   toast('Testing...');try{const j=await post({key:cfg.key,ping:true});toast(j&&j.ok?'✅ Connected!':'❌ '+(j&&j.error||'Wrong key'))}catch(e){toast('❌ Cannot reach the script. Check the URL and deployment.')}
 };
